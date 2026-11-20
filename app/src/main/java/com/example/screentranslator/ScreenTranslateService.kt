@@ -1,4 +1,4 @@
-[20.11.2026 18:47] loop: package com.example.screentranslator
+package com.example.screentranslator
 
 import android.app.Activity
 import android.app.Notification
@@ -103,7 +103,7 @@ class ScreenTranslateService : Service() {
         }
         return START_NOT_STICKY
     }
-[20.11.2026 18:47] loop: private fun setupVirtualDisplay() {
+private fun setupVirtualDisplay() {
         imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "ScreenCapture",
@@ -213,7 +213,7 @@ class ScreenTranslateService : Service() {
 
         val image = imageReader?.acquireLatestImage() ?: return
         isProcessingFrame = true
-[20.11.2026 18:47] loop: try {
+try {
             val planes = image.planes
             val buffer = planes[0].buffer
             val pixelStride = planes[0].pixelStride
@@ -305,7 +305,7 @@ class ScreenTranslateService : Service() {
             isProcessingFrame = false
         }
     }
-[20.11.2026 18:47] loop: private fun startForegroundNotification(): Notification {
+private fun startForegroundNotification(): Notification {
         val channelId = "screen_translator_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
