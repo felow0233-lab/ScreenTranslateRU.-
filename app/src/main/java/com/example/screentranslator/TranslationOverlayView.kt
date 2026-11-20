@@ -1,96 +1,71 @@
 package com.example.screentranslator
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.media.projection.MediaProjectionManager
-import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.provider.Settings
-import android.widget.Button
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import com.google.mlkit.common.model.DownloadConditions
-import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.TranslatorOptions
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.view.View
 
-class MainActivity : AppCompatActivity() {
+data class TranslatedBlock(val rect: Rect, val translatedText: String)
 
-    private lateinit var projectionManager: MediaProjectionManager
+class TranslationOverlayView(context: Context) : View(context) {
 
-    private val screenCaptureLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val serviceIntent = Intent(this, ScreenTranslateService::class.java).apply {
-                putExtra("RESULT_CODE", result.resultCode)
-                putExtra("DATA", result.data)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
-            Toast.makeText(this, "Сервис запущен, ищите кнопку перевода", Toast.LENGTH_SHORT).show()
-            moveTaskToBack(true)
-        } else {
-            Toast.makeText(this, "Разрешение на запись экрана не выдано", Toast.LENGTH_SHORT).show()
-        }
+    private var blocks: List<TranslatedBlock> = emptyList()
+
+    private val bgPaint = Paint().apply {
+        color = Color.parseColor("#E6141414")
+        style = Paint.Style.FILL
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val startButton = Button(this).apply {
-            text = "ЗАПУСТИТЬ ПЕРЕВОДЧИК ЭКРАНА"
-            textSize = 18f
-        }
-        setContentView(startButton)
-
-        projectionManager =
-            getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-
-        downloadLanguageModel()
-
-        startButton.setOnClickListener {
-            if (!Settings.canDrawOverlays(this)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivity(intent)
-                Toast.makeText(
-                    this,
-                    "Разрешите отображение поверх других окон",
-                    Toast.LENGTH_LONG
-                ).show()
-            } else {
-                screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent())
-            }
-        }
+    private val textPaint = TextPaint().apply {
+        color = Color.WHITE
+        isAntiAlias = true
+        textSize = 32f
     }
 
-    private fun downloadLanguageModel() {
-        val options = TranslatorOptions.Builder()
-            .setSourceLanguage(TranslateLanguage.ENGLISH)
-            .setTargetLanguage(TranslateLanguage.RUSSIAN)
-            .build()
-        val translator = Translation.getClient(options)
+    fun updateTranslations(newBlocks: List<TranslatedBlock>) {
+        blocks = newBlocks
+        invalidate()
+    }
 
-        val conditions = DownloadConditions.Builder().build()
-        translator.downloadModelIfNeeded(conditions)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Русский словарь загружен", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(
-                    this,
-                    "Не удалось загрузить словарь. Проверьте интернет.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+    fun clear() {
+        blocks = emptyList()
+        invalidate()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        for (block in blocks) {
+            val width = (block.rect.width() + 24).coerceAtLeast(120)
+            val height = (block.rect.height() + 16).coerceAtLeast(48)
+            val left = (block.rect.left - 12).coerceAtLeast(0)
+            val top = (block.rect.top - 8).coerceAtLeast(0)
+
+            canvas.drawRect(
+                left.toFloat(),
+                top.toFloat(),
+                (left + width).toFloat(),
+                (top + height).toFloat(),
+                bgPaint
+            )
+
+            textPaint.textSize = (block.rect.height() * 0.45f).coerceIn(24f, 44f)
+
+            val staticLayout = StaticLayout.Builder
+                .obtain(block.translatedText, 0, block.translatedText.length, textPaint, (width - 16).coerceAtLeast(60))
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1.05f)
+                .setIncludePad(false)
+                .build()
+
+            canvas.save()
+            canvas.translate((left + 8).toFloat(), (top + 6).toFloat())
+            staticLayout.draw(canvas)
+            canvas.restore()
+        }
     }
 }
