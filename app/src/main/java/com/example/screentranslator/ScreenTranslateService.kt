@@ -1,4 +1,4 @@
-[20.11.2026 18:35] loop: package com.example.screentranslator
+[20.11.2026 18:47] loop: package com.example.screentranslator
 
 import android.app.Activity
 import android.app.Notification
@@ -103,7 +103,7 @@ class ScreenTranslateService : Service() {
         }
         return START_NOT_STICKY
     }
-[20.11.2026 18:35] loop: private fun setupVirtualDisplay() {
+[20.11.2026 18:47] loop: private fun setupVirtualDisplay() {
         imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         virtualDisplay = mediaProjection?.createVirtualDisplay(
             "ScreenCapture",
@@ -213,7 +213,7 @@ class ScreenTranslateService : Service() {
 
         val image = imageReader?.acquireLatestImage() ?: return
         isProcessingFrame = true
-[20.11.2026 18:35] loop: try {
+[20.11.2026 18:47] loop: try {
             val planes = image.planes
             val buffer = planes[0].buffer
             val pixelStride = planes[0].pixelStride
@@ -247,7 +247,6 @@ class ScreenTranslateService : Service() {
                         return@addOnSuccessListener
                     }
 
-                    // Переводим заново только если изменился текст или положение блоков
                     val signature = blocks.joinToString(separator = "|") { block ->
                         val box = block.boundingBox
                         "${block.text.trim()}@${box?.left ?: 0},${box?.top ?: 0}"
@@ -306,7 +305,7 @@ class ScreenTranslateService : Service() {
             isProcessingFrame = false
         }
     }
-[20.11.2026 18:35] loop: private fun startForegroundNotification(): Notification {
+[20.11.2026 18:47] loop: private fun startForegroundNotification(): Notification {
         val channelId = "screen_translator_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
